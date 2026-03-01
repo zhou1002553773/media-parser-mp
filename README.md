@@ -34,7 +34,7 @@
 * **⚙️ 后端源码**: [https://github.com/ucmao/parse-ucmao-backend](https://github.com/ucmao/parse-ucmao-backend)
 
 <p align="center">
-<img src="qr_code.jpg" width="200" alt="优创猫去水印太阳码">
+<img src="qr_code.webp" width="200" alt="优创猫去水印太阳码">
 </p>
 
 > **协作提示**：本仓库仅包含前端小程序代码。如需实现核心解析功能，请配合部署上述后端服务。
