@@ -4,7 +4,7 @@
     "pages/videoPlayer/videoPlayer"
   ],
   "window": {
-    "navigationBarTitleText": "优创猫去水印"
+    "navigationBarTitleText": "去水印小程序"
   },
   "lazyCodeLoading": "requiredComponents"
 }
