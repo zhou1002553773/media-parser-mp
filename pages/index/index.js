@@ -10,8 +10,12 @@ Page({
     showVideo: false,
     showArticle: false,
     showCoverButton: false,
+    showImageList: false,
+    showAudio: false,
+    showLivePhotos: false,
     showSaveCoverButton: false,
     showSaveVideoButton: false,
+    showSaveImagesButton: false,
     savingVideo: false,
     downloadProgress: 0,
     isButtonDisabled: false,
@@ -21,8 +25,15 @@ Page({
       video_url: '',
       title: '',
       cover_url: '',
-      video_id: ''
+      video_id: '',
+      image_list: [],
+      live_photo_list: [],
+      audio_url: '',
+      author: null
     },
+    mediaCount: 0,
+    mediaTypeLabel: '',
+    audioPlaying: false,
     isClearMode: false,
     totalCount: 0, // 累计解析数据
     statusBarHeight: 0,
@@ -56,6 +67,10 @@ Page({
   },
 
   onUnload: function () {
+    if (this.audioContext) {
+      this.audioContext.destroy();
+      this.audioContext = null;
+    }
   },
 
   onInput: function (e) {
@@ -83,8 +98,12 @@ Page({
       showVideo: false,
       showArticle: false,
       showCoverButton: false,
+      showImageList: false,
+      showAudio: false,
+      showLivePhotos: false,
       showSaveCoverButton: false,
       showSaveVideoButton: false,
+      showSaveImagesButton: false,
       savingVideo: false,
       downloadProgress: 0,
       isButtonDisabled: true,
@@ -95,8 +114,15 @@ Page({
         video_url: '',
         title: '',
         cover_url: '',
-        video_id: ''
-      }
+        video_id: '',
+        image_list: [],
+        live_photo_list: [],
+        audio_url: '',
+        author: null
+      },
+      mediaCount: 0,
+      mediaTypeLabel: '',
+      audioPlaying: false
     });
     const { inputValue } = this.data;
     if (inputValue === '') {
@@ -130,13 +156,20 @@ Page({
         if (data.video_url === null && data.title === null && data.cover_url === null) {
           showToast('无法获取到该视频信息，请稍后再试', 'none', 2000);
         } else {
+          const normalizedData = this.normalizeParseData(data);
           this.setData({
-            response: data,
-            showVideo: !!data.video_url,
-            showArticle: !!data.title,
-            showCoverButton: !!data.cover_url,
-            showSaveVideoButton: !!data.video_url,
-            showSaveCoverButton: !!data.cover_url,
+            response: normalizedData,
+            showVideo: !!normalizedData.video_url,
+            showArticle: !!normalizedData.title,
+            showCoverButton: !!normalizedData.cover_url,
+            showImageList: normalizedData.image_list.length > 0,
+            showAudio: !!normalizedData.audio_url,
+            showLivePhotos: normalizedData.live_photo_list.length > 0,
+            showSaveVideoButton: !!normalizedData.video_url,
+            showSaveCoverButton: !!normalizedData.cover_url,
+            showSaveImagesButton: normalizedData.image_list.length > 0,
+            mediaCount: this.getMediaCount(normalizedData),
+            mediaTypeLabel: this.getMediaTypeLabel(normalizedData),
             showWhiteBackground: true
           });
         }
@@ -153,11 +186,70 @@ Page({
     }
   },
 
+  normalizeParseData(data = {}) {
+    const imageList = Array.isArray(data.image_list) ? data.image_list.filter(Boolean) : [];
+    const livePhotoList = Array.isArray(data.live_photo_list)
+      ? data.live_photo_list.filter(Boolean)
+      : Array.isArray(data.live_list)
+        ? data.live_list.filter(Boolean)
+        : [];
+
+    return {
+      ...data,
+      image_list: imageList,
+      live_photo_list: livePhotoList,
+      cover_url: data.cover_url || imageList[0] || '',
+      video_url: data.video_url || '',
+      audio_url: data.audio_url || '',
+      title: data.title || '',
+      platform: data.platform || '',
+      author: data.author || {}
+    };
+  },
+
+  getMediaCount(data) {
+    if (data.video_url) return 1;
+    if (data.live_photo_list.length) return data.live_photo_list.length;
+    if (data.image_list.length) return data.image_list.length;
+    return data.cover_url ? 1 : 0;
+  },
+
+  getMediaTypeLabel(data) {
+    if (data.video_url) return '视频素材';
+    if (data.live_photo_list.length) return '实况素材';
+    if (data.image_list.length) return `图集素材（${data.image_list.length}张）`;
+    return '封面素材';
+  },
+
   viewCoverImage() {
     const { cover_url } = this.data.response;
     wx.previewImage({
       urls: [cover_url],
       current: cover_url
+    });
+  },
+
+  previewImageList(e) {
+    const current = e.currentTarget.dataset.url;
+    const urls = this.data.response.image_list.length
+      ? this.data.response.image_list
+      : [this.data.response.cover_url].filter(Boolean);
+
+    if (!urls.length) return;
+    wx.previewImage({
+      urls,
+      current: current || urls[0]
+    });
+  },
+
+  previewLivePhotos(e) {
+    const current = e.currentTarget.dataset.url;
+    const urls = this.data.response.live_photo_list;
+
+    if (!urls.length) return;
+    wx.previewImage({
+      urls,
+      current: current || urls[0]
     });
   },
 
@@ -169,8 +261,8 @@ Page({
   },
 
   async downloadVideo() {
+    const { video_url, video_id } = this.data.response;
     try {
-      const { video_url, video_id } = this.data.response;
       const message = await downloadVideoToPhotosAlbum(video_url, video_id);
       showToast(message, 'success');
     } catch (error) {
@@ -192,11 +284,76 @@ Page({
     }
   },
 
+  async downloadImageList() {
+    const { image_list } = this.data.response;
+    if (!image_list || !image_list.length) {
+      showToast('暂无图集可保存', 'none');
+      return;
+    }
+
+    wx.showLoading({
+      title: '保存图集中...',
+      mask: true
+    });
+
+    try {
+      for (let i = 0; i < image_list.length; i += 1) {
+        await this.saveImageToAlbum(image_list[i]);
+      }
+      wx.hideLoading();
+      showToast('图集保存成功', 'success');
+    } catch (error) {
+      wx.hideLoading();
+      copyToClipboard(image_list.join('\n'), { title: '保存失败，图集链接已复制', icon: 'none' });
+    }
+  },
+
+  saveImageToAlbum(url) {
+    return new Promise((resolve, reject) => {
+      wx.downloadFile({
+        url,
+        success: (res) => {
+          wx.saveImageToPhotosAlbum({
+            filePath: res.tempFilePath,
+            success: resolve,
+            fail: reject
+          });
+        },
+        fail: reject
+      });
+    });
+  },
+
+  toggleAudio() {
+    const { audio_url } = this.data.response;
+    if (!audio_url) return;
+
+    if (!this.audioContext) {
+      this.audioContext = wx.createInnerAudioContext();
+      this.audioContext.onEnded(() => this.setData({ audioPlaying: false }));
+      this.audioContext.onError(() => {
+        this.setData({ audioPlaying: false });
+        copyToClipboard(audio_url, { title: '播放失败，音乐链接已复制', icon: 'none' });
+      });
+    }
+
+    if (this.data.audioPlaying) {
+      this.audioContext.pause();
+      this.setData({ audioPlaying: false });
+    } else {
+      this.audioContext.src = audio_url;
+      this.audioContext.play();
+      this.setData({ audioPlaying: true });
+    }
+  },
+
   copyAllInfo() {
-    const { title, cover_url, video_url } = this.data.response;
+    const { title, cover_url, video_url, audio_url, image_list } = this.data.response;
     let content = `标题：${title || '无'}\n`;
     content += `封面：${cover_url || '无'}\n`;
-    content += `视频：${video_url || '无'}`;
+    content += `视频：${video_url || '无'}\n`;
+    content += `音乐：${audio_url || '无'}\n`;
+    content += `图集：${image_list && image_list.length ? image_list.join('\n') : '无'}`;
     copyToClipboard(content, { title: '全部信息已复制' });
   },
 
@@ -216,6 +373,12 @@ Page({
     const { video_url } = this.data.response;
     let content = `${video_url || '无'}`;
     copyToClipboard(content, { title: '视频链接已复制' });
+  },
+
+  copyImageList() {
+    const { image_list } = this.data.response;
+    const content = image_list && image_list.length ? image_list.join('\n') : '无';
+    copyToClipboard(content, { title: '图集链接已复制' });
   },
 
   showDisclaimer() {

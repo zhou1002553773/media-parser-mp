@@ -56,38 +56,93 @@
   <!-- 结果区：卡片式封装 -->
   <view class="result-section" wx:if="{{showWhiteBackground}}">
     <view class="result-card">
-      <!-- 视频预览/封面 -->
-      <view class="video-block" wx:if="{{showVideo || showCoverButton}}">
+      <view class="author-panel">
+        <image class="author-avatar" src="{{response.author.avatar || '../../images/default-avatar.png'}}" mode="aspectFill" />
+        <view class="author-meta">
+          <text class="author-name">{{response.author.nickname || '未知作者'}}</text>
+          <text class="author-subtitle">{{response.platform || '解析素材'}} · 创作者</text>
+        </view>
+        <view class="platform-badge">{{mediaTypeLabel}}</view>
+      </view>
+
+      <view class="result-divider"></view>
+
+      <view class="media-header" wx:if="{{mediaCount}}">
+        <text class="media-title">{{mediaTypeLabel}}</text>
+        <text class="media-count">{{mediaCount}}个文件</text>
+      </view>
+
+      <view class="video-block" wx:if="{{showVideo}}">
         <view class="video-glass-label">{{response.platform || '视频素材'}}</view>
-        <image 
-          wx:if="{{showCoverButton && !showVideo}}" 
-          class="result-video" 
-          src="{{response.cover_url}}" 
-          mode="aspectFill" 
-          bindtap="viewCoverImage"
-        />
-        <video 
-          wx:if="{{showVideo}}" 
-          class="result-video" 
-          src="{{response.video_url}}" 
+        <video
+          class="result-video"
+          src="{{response.video_url}}"
           poster="{{response.cover_url}}"
           binderror="onVideoError"
           controls
         />
       </view>
 
-      <!-- 标题内容 -->
+      <scroll-view class="image-strip" scroll-x wx:if="{{showImageList}}">
+        <view class="image-strip-inner">
+          <view
+            class="image-thumb-wrap"
+            wx:for="{{response.image_list}}"
+            wx:key="*this"
+            data-url="{{item}}"
+            bindtap="previewImageList"
+          >
+            <image class="image-thumb" src="{{item}}" mode="aspectFill" />
+            <view class="image-index">{{index + 1}}</view>
+          </view>
+        </view>
+      </scroll-view>
+
+      <view class="cover-preview" wx:if="{{showCoverButton && !showVideo && !showImageList}}" bindtap="viewCoverImage">
+        <image class="cover-image" src="{{response.cover_url}}" mode="aspectFill" />
+        <text class="cover-tip">点击查看封面</text>
+      </view>
+
+      <scroll-view class="image-strip live-strip" scroll-x wx:if="{{showLivePhotos}}">
+        <view class="image-strip-inner">
+          <view
+            class="image-thumb-wrap live-thumb-wrap"
+            wx:for="{{response.live_photo_list}}"
+            wx:key="*this"
+            data-url="{{item}}"
+            bindtap="previewLivePhotos"
+          >
+            <image class="image-thumb" src="{{item}}" mode="aspectFill" />
+            <view class="live-badge">LIVE</view>
+          </view>
+        </view>
+      </scroll-view>
+
+      <view class="audio-card" wx:if="{{showAudio}}">
+        <view class="record-icon {{audioPlaying ? 'record-playing' : ''}}" bindtap="toggleAudio">
+          <view class="record-dot"></view>
+        </view>
+        <view class="audio-info" bindtap="toggleAudio">
+          <text class="audio-title">原声音乐</text>
+          <text class="audio-desc">{{audioPlaying ? '正在播放，点击暂停' : '点击试听'}}</text>
+        </view>
+        <button class="audio-copy-btn" bindtap="toggleAudio">{{audioPlaying ? '暂停' : '试听'}}</button>
+      </view>
+
       <view class="title-block" wx:if="{{showArticle}}">
         <text class="title-label">文案内容</text>
         <text class="title-content" selectable>{{response.title}}</text>
       </view>
 
-      <!-- 操作矩阵：三个主操作，长方形，前两个 logo 蓝、分享深色 -->
       <view class="action-matrix">
         <view class="action-row">
           <button class="action-btn btn-save" bindtap="downloadVideo" wx:if="{{showSaveVideoButton}}">
             <image class="action-btn-icon" src="../../images/download_vid.png" />
             <text>保存视频</text>
+          </button>
+          <button class="action-btn btn-primary" bindtap="downloadImageList" wx:if="{{showSaveImagesButton}}">
+            <image class="action-btn-icon" src="../../images/download_img.png" />
+            <text>保存图集</text>
           </button>
           <button class="action-btn btn-save" bindtap="downloadCover" wx:if="{{showSaveCoverButton}}">
             <image class="action-btn-icon" src="../../images/download_img.png" />
@@ -106,7 +161,8 @@
         <text class="copy-sep">|</text>
         <text class="copy-link" bindtap="copyCoverUrl">复制封面</text>
         <text class="copy-sep">|</text>
-        <text class="copy-link" bindtap="copyVideoUrl">复制视频</text>
+        <text class="copy-link" wx:if="{{showImageList}}" bindtap="copyImageList">复制图集</text>
+        <text class="copy-link" wx:else bindtap="copyVideoUrl">复制视频</text>
         <text class="copy-sep">|</text>
         <text class="copy-link" bindtap="copyAllInfo">复制全部</text>
       </view>

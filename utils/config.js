@@ -4,7 +4,8 @@
 const config = {
   // 后端服务器基础域名 (部署时请替换为您自己的域名)
   // 注意：必须以 https:// 开头，且末尾不要带斜杠 /
-  baseURL: 'https://parse.ucmao.cn',
+  baseURL: 'http://192.168.1.2:8051',
+  // baseURL: 'http://127.0.0.1:8051',
   
   // 请求超时时间（毫秒）
   timeout: 15000,
