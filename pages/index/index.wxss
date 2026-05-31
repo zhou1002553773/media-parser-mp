@@ -507,7 +507,7 @@ page {
 }
 
 .audio-copy-btn {
-  width: 72px;
+  width: 76px;
   height: 34px;
   line-height: 34px;
   padding: 0;
@@ -597,6 +597,13 @@ page {
   box-shadow: none;
 }
 
+.action-btn.btn-cover {
+  background: #e9f2ff;
+  color: #1d5fd6;
+  border: 1px solid rgba(36, 94, 232, 0.18);
+  box-shadow: 0 5px 14px rgba(36, 94, 232, 0.1);
+}
+
 .action-btn.btn-primary {
   flex: 1.9;
   background: #245ee8;
@@ -610,6 +617,11 @@ page {
 
 .action-btn.btn-save:active {
   background: #dfeaff;
+  transform: scale(0.98);
+}
+
+.action-btn.btn-cover:active {
+  background: #d9e8ff;
   transform: scale(0.98);
 }
 

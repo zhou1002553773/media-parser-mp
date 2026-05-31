@@ -34,6 +34,8 @@ Page({
     mediaCount: 0,
     mediaTypeLabel: '',
     audioPlaying: false,
+    audioLoading: false,
+    audioReady: false,
     isClearMode: false,
     totalCount: 0, // 累计解析数据
     statusBarHeight: 0,
@@ -67,10 +69,7 @@ Page({
   },
 
   onUnload: function () {
-    if (this.audioContext) {
-      this.audioContext.destroy();
-      this.audioContext = null;
-    }
+    this.stopAudio();
   },
 
   onInput: function (e) {
@@ -94,6 +93,7 @@ Page({
 
   async onSubmit() {
     if (this.data.isButtonDisabled) return;
+    this.stopAudio();
     this.setData({
       showVideo: false,
       showArticle: false,
@@ -122,7 +122,9 @@ Page({
       },
       mediaCount: 0,
       mediaTypeLabel: '',
-      audioPlaying: false
+      audioPlaying: false,
+      audioLoading: false,
+      audioReady: false
     });
     const { inputValue } = this.data;
     if (inputValue === '') {
@@ -176,6 +178,7 @@ Page({
       }
     } catch (error) {
       console.error('请求失败:', error);
+      showToast(error.message || '解析失败，请稍后再试', 'none', 2500);
     } finally {
       setTimeout(() => {
         this.setData({
@@ -328,23 +331,88 @@ Page({
     const { audio_url } = this.data.response;
     if (!audio_url) return;
 
-    if (!this.audioContext) {
-      this.audioContext = wx.createInnerAudioContext();
-      this.audioContext.onEnded(() => this.setData({ audioPlaying: false }));
-      this.audioContext.onError(() => {
-        this.setData({ audioPlaying: false });
-        copyToClipboard(audio_url, { title: '播放失败，音乐链接已复制', icon: 'none' });
-      });
-    }
+    this.ensureAudioManager();
 
     if (this.data.audioPlaying) {
-      this.audioContext.pause();
-      this.setData({ audioPlaying: false });
-    } else {
-      this.audioContext.src = audio_url;
-      this.audioContext.play();
-      this.setData({ audioPlaying: true });
+      this.audioManager.pause();
+      return;
     }
+
+    const { title, cover_url, author } = this.data.response;
+    this.setData({ audioLoading: true });
+
+    this.audioManager.title = title || '原声音乐';
+    this.audioManager.singer = author && author.nickname ? author.nickname : '未知作者';
+    this.audioManager.coverImgUrl = cover_url || '';
+
+    if (this.audioManager.src !== audio_url) {
+      this.audioManager.src = audio_url;
+    } else {
+      this.audioManager.play();
+    }
+  },
+
+  ensureAudioManager() {
+    if (this.audioManager) return;
+
+    wx.setInnerAudioOption({
+      obeyMuteSwitch: false,
+      mixWithOther: true
+    });
+
+    this.audioManager = wx.getBackgroundAudioManager();
+
+    this.audioManager.onCanplay(() => {
+      this.setData({ audioLoading: false });
+    });
+
+    this.audioManager.onPlay(() => {
+      this.setData({
+        audioPlaying: true,
+        audioLoading: false,
+        audioReady: true
+      });
+    });
+
+    this.audioManager.onPause(() => {
+      this.setData({
+        audioPlaying: false,
+        audioLoading: false
+      });
+    });
+
+    this.audioManager.onStop(() => {
+      this.setData({
+        audioPlaying: false,
+        audioLoading: false
+      });
+    });
+
+    this.audioManager.onEnded(() => {
+      this.setData({
+        audioPlaying: false,
+        audioLoading: false
+      });
+    });
+
+    this.audioManager.onError((error) => {
+      console.error('Audio play error:', error);
+      this.setData({
+        audioPlaying: false,
+        audioLoading: false,
+        audioReady: false
+      });
+      copyToClipboard(this.data.response.audio_url, { title: `音乐播放失败(${error.errCode || '未知'})，链接已复制`, icon: 'none' });
+    });
+  },
+
+  stopAudio() {
+    if (!this.audioManager) return;
+    this.audioManager.stop();
+    this.setData({
+      audioPlaying: false,
+      audioLoading: false
+    });
   },
 
   copyAllInfo() {

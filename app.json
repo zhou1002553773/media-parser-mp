@@ -6,5 +6,8 @@
   "window": {
     "navigationBarTitleText": "去水印小程序"
   },
+  "requiredBackgroundModes": [
+    "audio"
+  ],
   "lazyCodeLoading": "requiredComponents"
 }

@@ -124,9 +124,9 @@
         </view>
         <view class="audio-info" bindtap="toggleAudio">
           <text class="audio-title">原声音乐</text>
-          <text class="audio-desc">{{audioPlaying ? '正在播放，点击暂停' : '点击试听'}}</text>
+          <text class="audio-desc">{{audioLoading ? '正在加载音频...' : (audioPlaying ? '正在播放，点击暂停' : '点击试听')}}</text>
         </view>
-        <button class="audio-copy-btn" bindtap="toggleAudio">{{audioPlaying ? '暂停' : '试听'}}</button>
+        <button class="audio-copy-btn" bindtap="toggleAudio">{{audioLoading ? '加载中' : (audioPlaying ? '暂停' : '试听')}}</button>
       </view>
 
       <view class="title-block" wx:if="{{showArticle}}">
@@ -140,13 +140,13 @@
             <image class="action-btn-icon" src="../../images/download_vid.png" />
             <text>保存视频</text>
           </button>
+          <button class="action-btn btn-cover" bindtap="downloadCover" wx:if="{{showSaveCoverButton}}">
+            <image class="action-btn-icon" src="../../images/download_img.png" />
+            <text>保存封面</text>
+          </button>
           <button class="action-btn btn-primary" bindtap="downloadImageList" wx:if="{{showSaveImagesButton}}">
             <image class="action-btn-icon" src="../../images/download_img.png" />
             <text>保存图集</text>
-          </button>
-          <button class="action-btn btn-save" bindtap="downloadCover" wx:if="{{showSaveCoverButton}}">
-            <image class="action-btn-icon" src="../../images/download_img.png" />
-            <text>保存封面</text>
           </button>
           <button class="action-btn btn-share" open-type="share">
             <image class="action-btn-icon" src="../../images/share-icon.png" />

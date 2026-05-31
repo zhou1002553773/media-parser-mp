@@ -24,11 +24,17 @@ function request(url, options = {}, retryCount = 0) {
           if (res.data && res.data.retcode === 200) {
             resolve(res.data);
           } else {
-            const errorMsg = res.data && res.data.msg || '请求失败';
-            reject(new Error(errorMsg));
+            const errorMsg = res.data && (res.data.retdesc || res.data.msg || res.data.message) || '请求失败';
+            const error = new Error(errorMsg);
+            error.response = res.data;
+            reject(error);
           }
         } else {
-          reject(new Error(`HTTP错误: ${res.statusCode}`));
+          const errorMsg = res.data && (res.data.retdesc || res.data.msg || res.data.message) || `HTTP错误: ${res.statusCode}`;
+          const error = new Error(errorMsg);
+          error.response = res.data;
+          error.statusCode = res.statusCode;
+          reject(error);
         }
       },
       fail(err) {
