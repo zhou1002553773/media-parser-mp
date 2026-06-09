@@ -1,7 +1,8 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/videoPlayer/videoPlayer"
+    "pages/videoPlayer/videoPlayer",
+    "pages/questions/questions"
   ],
   "window": {
     "navigationBarTitleText": "去水印小程序"

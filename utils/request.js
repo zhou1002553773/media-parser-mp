@@ -21,7 +21,7 @@ function request(url, options = {}, retryCount = 0) {
         // 统一处理HTTP状态码
         if (res.statusCode >= 200 && res.statusCode < 300) {
           // 处理业务状态码
-          if (res.data && res.data.retcode === 200) {
+          if (res.data && (res.data.retcode === 200 || res.data.code === 200)) {
             resolve(res.data);
           } else {
             const errorMsg = res.data && (res.data.retdesc || res.data.msg || res.data.message) || '请求失败';

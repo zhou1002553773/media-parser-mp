@@ -44,7 +44,7 @@
         disabled="{{isButtonDisabled}}"
       >
         <view wx:if="{{!isLoading}}" class="btn-content">
-          <text>喵去水印（免费）</text>
+          <text>去水印（免费）</text>
         </view>
         <view wx:else class="loading-inner">
           <text class="loading-dot">·</text><text class="loading-dot">·</text><text class="loading-dot">·</text>
@@ -103,27 +103,29 @@
         <text class="cover-tip">点击查看封面</text>
       </view>
 
-      <scroll-view class="image-strip live-strip" scroll-x wx:if="{{showLivePhotos}}">
-        <view class="image-strip-inner">
-          <view
-            class="image-thumb-wrap live-thumb-wrap"
-            wx:for="{{response.live_photo_list}}"
-            wx:key="*this"
-            data-url="{{item}}"
-            bindtap="previewLivePhotos"
-          >
-            <image class="image-thumb" src="{{item}}" mode="aspectFill" />
-            <view class="live-badge">LIVE</view>
+      <view class="live-photo-section" wx:if="{{showLivePhotos}}">
+        <text class="live-photo-tip">实况图包含静态图片与动态视频</text>
+        <scroll-view class="image-strip live-strip" scroll-x>
+          <view class="image-strip-inner">
+            <view
+              class="live-card"
+              wx:for="{{response.live_photos}}"
+              wx:key="image"
+            >
+              <image class="live-card-image" src="{{item.image}}" mode="aspectFill" data-url="{{item.image}}" bindtap="previewLivePhotos" />
+              <video class="live-card-video" src="{{item.video}}" poster="{{item.image}}" controls wx:if="{{item.video}}" />
+              <view class="live-badge">LIVE</view>
+            </view>
           </view>
-        </view>
-      </scroll-view>
+        </scroll-view>
+      </view>
 
       <view class="audio-card" wx:if="{{showAudio}}">
         <view class="record-icon {{audioPlaying ? 'record-playing' : ''}}" bindtap="toggleAudio">
           <view class="record-dot"></view>
         </view>
         <view class="audio-info" bindtap="toggleAudio">
-          <text class="audio-title">原声音乐</text>
+          <text class="audio-title">{{response.audio_title || '原声音乐'}}</text>
           <text class="audio-desc">{{audioLoading ? '正在加载音频...' : (audioPlaying ? '正在播放，点击暂停' : '点击试听')}}</text>
         </view>
         <button class="audio-copy-btn" bindtap="toggleAudio">{{audioLoading ? '加载中' : (audioPlaying ? '暂停' : '试听')}}</button>
@@ -147,6 +149,10 @@
           <button class="action-btn btn-primary" bindtap="downloadImageList" wx:if="{{showSaveImagesButton}}">
             <image class="action-btn-icon" src="../../images/download_img.png" />
             <text>保存图集</text>
+          </button>
+          <button class="action-btn btn-save" bindtap="downloadLiveVideos" wx:if="{{showLivePhotos}}">
+            <image class="action-btn-icon" src="../../images/download_vid.png" />
+            <text>保存实况视频</text>
           </button>
           <button class="action-btn btn-share" open-type="share">
             <image class="action-btn-icon" src="../../images/share-icon.png" />

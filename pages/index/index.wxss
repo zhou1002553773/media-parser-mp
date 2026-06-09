@@ -406,11 +406,36 @@ page {
 }
 
 .live-strip {
-  margin-top: -4px;
+  margin-top: 8px;
 }
 
-.live-thumb-wrap {
+.live-photo-section {
+  margin-bottom: 18px;
+}
+
+.live-photo-tip {
+  font-size: 12px;
+  color: #8d939d;
+}
+
+.live-card {
+  position: relative;
+  width: 220px;
+  border-radius: 13px;
+  overflow: hidden;
+  background: #eef1f4;
   border: 1px solid rgba(255, 88, 94, 0.24);
+}
+
+.live-card-image,
+.live-card-video {
+  width: 220px;
+  height: 150px;
+  display: block;
+}
+
+.live-card-video {
+  border-top: 1px solid rgba(255, 255, 255, 0.8);
 }
 
 .live-badge {

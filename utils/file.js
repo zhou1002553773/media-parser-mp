@@ -1,4 +1,3 @@
-import { request } from './request';
 import { copyToClipboard } from './clipboard';
 import { showToast } from './ui';
 
@@ -48,64 +47,38 @@ function downloadCoverToPhotosAlbum(url, showLoading = false, errorCallback = ()
 
 // 下载视频到相册
 // 功能：将指定视频下载并保存到用户的手机相册，返回一个 Promise 对象
-function downloadVideoToPhotosAlbum(videoUrl, videoId) {
+function downloadVideoToPhotosAlbum(videoUrl) {
   return new Promise((resolve, reject) => {
-    // 显示加载提示
     wx.showLoading({
       title: '正在下载...',
+      mask: true
     });
-    request('/api/download', {
-      method: 'POST',
-      data: {
-        video_url: videoUrl,
-        video_id: videoId
-      }
-    }).then(res => {
-      console.info('Request Response:', res); // 打印请求响应
-      if (res.retcode === 200) {
-        const downloadUrl = res.data.download_url;
-        console.info('downloadUrl', downloadUrl);
-        // 开始下载文件
-        const downloadTask = wx.downloadFile({
-          url: downloadUrl,
-          success: (res) => {
-            console.info('Download Response:', res); // 打印下载响应
-            if (res.statusCode === 200) {
-              const filePath = res.tempFilePath;
-              // 保存视频到相册
-              wx.saveVideoToPhotosAlbum({
-                filePath: filePath,
-                success: () => {
-                  wx.hideLoading(); // 隐藏加载提示
-                  resolve('视频保存成功');
-                },
-                fail: (err) => {
-                  wx.hideLoading(); // 隐藏加载提示
-                  reject('保存到相册失败: ' + err.errMsg);
-                }
-              });
-            } else {
-              wx.hideLoading(); // 隐藏加载提示
-              reject('下载失败');
-            }
+
+    wx.downloadFile({
+      url: videoUrl,
+      success: (res) => {
+        if (res.statusCode !== 200) {
+          wx.hideLoading();
+          reject('下载失败');
+          return;
+        }
+
+        wx.saveVideoToPhotosAlbum({
+          filePath: res.tempFilePath,
+          success: () => {
+            wx.hideLoading();
+            resolve('视频保存成功');
           },
           fail: (err) => {
-            wx.hideLoading(); // 隐藏加载提示
-            reject('下载失败: ' + err.errMsg);
+            wx.hideLoading();
+            reject('保存到相册失败: ' + err.errMsg);
           }
         });
-        // 监听下载进度（不需要具体百分比，可以不处理）
-        downloadTask.onProgressUpdate((res) => {
-          // 这里可以不处理进度信息，只显示一个加载中的提示
-        });
-      } else {
-        wx.hideLoading(); // 隐藏加载提示
-        reject('请求失败');
+      },
+      fail: (err) => {
+        wx.hideLoading();
+        reject('下载失败: ' + err.errMsg);
       }
-    }).catch(err => {
-      wx.hideLoading(); // 隐藏加载提示
-      console.info('Request Error:', err); // 打印请求错误
-      reject('请求失败');
     });
   });
 }

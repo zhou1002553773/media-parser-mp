@@ -28,6 +28,7 @@ Page({
       video_id: '',
       image_list: [],
       live_photo_list: [],
+      live_photos: [],
       audio_url: '',
       author: null
     },
@@ -117,6 +118,7 @@ Page({
         video_id: '',
         image_list: [],
         live_photo_list: [],
+        live_photos: [],
         audio_url: '',
         author: null
       },
@@ -145,20 +147,20 @@ Page({
       return;
     }
     try {
-      const response = await request('/api/parse', {
-        method: 'POST',
+      const response = await request('/short_videos/sv1.php', {
+        method: 'GET',
         data: {
-          text: url
+          url
         }
       });
-      if (response.retcode !== 200) {
-        showToast(response.retdesc, 'none', 2000);
+      if (response.code !== 200) {
+        showToast(response.msg || '解析失败', 'none', 2000);
       } else {
         const data = response.data;
-        if (data.video_url === null && data.title === null && data.cover_url === null) {
+        if (!data || (!data.url && !data.title && !data.cover && !(data.images || []).length && !(data.live_photo || []).length)) {
           showToast('无法获取到该视频信息，请稍后再试', 'none', 2000);
         } else {
-          const normalizedData = this.normalizeParseData(data);
+          const normalizedData = this.normalizeParseData(data, response.platform);
           this.setData({
             response: normalizedData,
             showVideo: !!normalizedData.video_url,
@@ -189,37 +191,49 @@ Page({
     }
   },
 
-  normalizeParseData(data = {}) {
-    const imageList = Array.isArray(data.image_list) ? data.image_list.filter(Boolean) : [];
-    const livePhotoList = Array.isArray(data.live_photo_list)
-      ? data.live_photo_list.filter(Boolean)
-      : Array.isArray(data.live_list)
-        ? data.live_list.filter(Boolean)
-        : [];
+  normalizeParseData(data = {}, platform = '') {
+    const livePhotos = Array.isArray(data.live_photo)
+      ? data.live_photo.filter(item => item && (item.image || item.video))
+      : [];
+    const livePhotoList = livePhotos.map(item => item.image).filter(Boolean);
+    const sourceImages = Array.isArray(data.images) ? data.images.filter(Boolean) : [];
+    const imageList = [...new Set(sourceImages.length ? sourceImages : livePhotoList)];
+    const music = data.music || {};
+    const author = data.author || {};
+    const extra = data.extra || {};
+    const videoBackup = Array.isArray(data.video_backup) ? data.video_backup : [];
+    const backupVideo = videoBackup.find(item => item && item.url);
 
     return {
       ...data,
       image_list: imageList,
       live_photo_list: livePhotoList,
-      cover_url: data.cover_url || imageList[0] || '',
-      video_url: data.video_url || '',
-      audio_url: data.audio_url || '',
+      live_photos: livePhotos,
+      cover_url: data.cover || imageList[0] || '',
+      video_url: data.url || (backupVideo && backupVideo.url) || '',
+      video_id: extra.aweme_id ? String(extra.aweme_id) : '',
+      audio_url: music.url || '',
+      audio_title: music.title || '',
       title: data.title || '',
-      platform: data.platform || '',
-      author: data.author || {}
+      desc: data.desc || '',
+      platform: platform || '',
+      author: {
+        ...author,
+        nickname: author.name || author.nickname || ''
+      }
     };
   },
 
   getMediaCount(data) {
+    if (data.live_photos.length) return data.live_photos.length;
     if (data.video_url) return 1;
-    if (data.live_photo_list.length) return data.live_photo_list.length;
     if (data.image_list.length) return data.image_list.length;
     return data.cover_url ? 1 : 0;
   },
 
   getMediaTypeLabel(data) {
+    if (data.live_photos.length) return `实况素材（${data.live_photos.length}组）`;
     if (data.video_url) return '视频素材';
-    if (data.live_photo_list.length) return '实况素材';
     if (data.image_list.length) return `图集素材（${data.image_list.length}张）`;
     return '封面素材';
   },
@@ -264,9 +278,9 @@ Page({
   },
 
   async downloadVideo() {
-    const { video_url, video_id } = this.data.response;
+    const { video_url } = this.data.response;
     try {
-      const message = await downloadVideoToPhotosAlbum(video_url, video_id);
+      const message = await downloadVideoToPhotosAlbum(video_url);
       showToast(message, 'success');
     } catch (error) {
       copyToClipboard(video_url);
@@ -274,9 +288,26 @@ Page({
     }
   },
 
+  async downloadLiveVideos() {
+    const videos = this.data.response.live_photos.map(item => item.video).filter(Boolean);
+    if (!videos.length) {
+      showToast('暂无实况视频可保存', 'none');
+      return;
+    }
+
+    try {
+      for (let i = 0; i < videos.length; i += 1) {
+        await downloadVideoToPhotosAlbum(videos[i]);
+      }
+      showToast('实况视频保存成功', 'success');
+    } catch (error) {
+      copyToClipboard(videos.join('\n'), { title: '保存失败，实况视频链接已复制', icon: 'none' });
+    }
+  },
+
   async downloadCover() {
     try {
-      const { cover_url, video_id } = this.data.response;
+      const { cover_url } = this.data.response;
       downloadCoverToPhotosAlbum(cover_url, true, (error) => {
         if (error) {
           copyToClipboard(cover_url, { title: '下载失败: 封面地址已复制，您可以尝试手动下载', icon: 'none' });
@@ -341,7 +372,7 @@ Page({
     const { title, cover_url, author } = this.data.response;
     this.setData({ audioLoading: true });
 
-    this.audioManager.title = title || '原声音乐';
+    this.audioManager.title = this.data.response.audio_title || title || '原声音乐';
     this.audioManager.singer = author && author.nickname ? author.nickname : '未知作者';
     this.audioManager.coverImgUrl = cover_url || '';
 
@@ -416,12 +447,14 @@ Page({
   },
 
   copyAllInfo() {
-    const { title, cover_url, video_url, audio_url, image_list } = this.data.response;
+    const { title, cover_url, video_url, audio_url, image_list, live_photos } = this.data.response;
+    const liveVideos = live_photos.map(item => item.video).filter(Boolean);
     let content = `标题：${title || '无'}\n`;
     content += `封面：${cover_url || '无'}\n`;
     content += `视频：${video_url || '无'}\n`;
     content += `音乐：${audio_url || '无'}\n`;
-    content += `图集：${image_list && image_list.length ? image_list.join('\n') : '无'}`;
+    content += `图集：${image_list && image_list.length ? image_list.join('\n') : '无'}\n`;
+    content += `实况视频：${liveVideos.length ? liveVideos.join('\n') : '无'}`;
     copyToClipboard(content, { title: '全部信息已复制' });
   },
 
