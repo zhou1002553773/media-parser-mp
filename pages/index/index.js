@@ -1,6 +1,6 @@
 import config from '../../utils/config';
 import { ensureLogin } from '../../utils/auth';
-import { createParse, getBenefit, grantAdReward } from '../../utils/api';
+import { createParse, generateApiKey, getApiKeyStatus, getBenefit, grantAdReward } from '../../utils/api';
 import { getClipboardData, copyToClipboard } from '../../utils/clipboard';
 import { extractUrl, truncateString } from '../../utils/util';
 import { downloadCoverToPhotosAlbum, downloadVideoToPhotosAlbum } from '../../utils/file';
@@ -52,6 +52,7 @@ Page({
     },
     benefitLoading: true,
     adLoading: false,
+    apiKeyLoading: false,
   },
 
   onLoad: async function () {
@@ -118,6 +119,46 @@ Page({
     } catch (error) {
       if (error.code !== 40101) console.error('获取权益失败:', error);
       this.setData({ benefitLoading: false });
+    }
+  },
+
+  async copyApiKey() {
+    if (this.data.apiKeyLoading) return;
+    this.setData({ apiKeyLoading: true });
+    try {
+      const session = await ensureLogin();
+      const storageKey = `parse_api_key_${session.principal_id}`;
+      const localApiKey = wx.getStorageSync(storageKey);
+      const status = await getApiKeyStatus();
+      const localMaskedKey = localApiKey
+        ? `${localApiKey.slice(0, 8)}...${localApiKey.slice(-4)}`
+        : '';
+      if (localApiKey && status.data.exists && status.data.masked_key === localMaskedKey) {
+        await copyToClipboard(localApiKey, { title: '秘钥已复制，请妥善保管' });
+        return;
+      }
+
+      if (status.data.exists) {
+        const confirmed = await new Promise(resolve => {
+          wx.showModal({
+            title: '需要重置秘钥',
+            content: `当前秘钥 ${status.data.masked_key} 的明文未保存在本机。重置后旧秘钥将立即失效，是否继续？`,
+            confirmText: '重置并复制',
+            confirmColor: '#e5484d',
+            success: result => resolve(result.confirm),
+            fail: () => resolve(false)
+          });
+        });
+        if (!confirmed) return;
+      }
+
+      const response = await generateApiKey();
+      wx.setStorageSync(storageKey, response.data.api_key);
+      await copyToClipboard(response.data.api_key, { title: '秘钥已生成并复制' });
+    } catch (error) {
+      showToast(error.message || '秘钥获取失败', 'none', 2500);
+    } finally {
+      this.setData({ apiKeyLoading: false });
     }
   },
 

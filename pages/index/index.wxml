@@ -25,6 +25,7 @@
       </view>
       <view class="benefit-actions">
         <text class="benefit-unlocked" wx:if="{{benefit.ad_unlocked}}">已解锁</text>
+        <button class="history-button" bindtap="copyApiKey" loading="{{apiKeyLoading}}" disabled="{{apiKeyLoading}}">复制秘钥</button>
         <button class="history-button" bindtap="navigateToHistory">解析历史</button>
       </view>
     </view>

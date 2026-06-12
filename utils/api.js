@@ -12,6 +12,14 @@ function getBenefit() {
   return request('/api/v1/users/me/benefit');
 }
 
+function getApiKeyStatus() {
+  return request('/api/v1/users/me/api-key');
+}
+
+function generateApiKey() {
+  return request('/api/v1/users/me/api-key', { method: 'POST' });
+}
+
 function grantAdReward(verificationData = null) {
   return request('/api/v1/users/me/ad-reward', {
     method: 'POST',
@@ -57,6 +65,8 @@ export {
   createRequestId,
   getMe,
   getBenefit,
+  getApiKeyStatus,
+  generateApiKey,
   grantAdReward,
   createParse,
   listParses,
