@@ -1,4 +1,6 @@
-import { request, config } from '../../utils/request';
+import config from '../../utils/config';
+import { ensureLogin } from '../../utils/auth';
+import { createParse, getBenefit, grantAdReward } from '../../utils/api';
 import { getClipboardData, copyToClipboard } from '../../utils/clipboard';
 import { extractUrl, truncateString } from '../../utils/util';
 import { downloadCoverToPhotosAlbum, downloadVideoToPhotosAlbum } from '../../utils/file';
@@ -42,10 +44,20 @@ Page({
     statusBarHeight: 0,
     navBarHeight: 0,
     hasRetried: false, // 标记当前展示的视频是否已尝试重试
+    benefit: {
+      used_count: 0,
+      limit: 3,
+      remaining: 3,
+      ad_unlocked: false
+    },
+    benefitLoading: true,
+    adLoading: false,
   },
 
-  onLoad: function () {
+  onLoad: async function () {
     this.setNavSize();
+    this.initRewardedVideoAd();
+    await this.initializeAccount();
   },
 
   // 计算导航栏高度
@@ -63,7 +75,16 @@ Page({
   },
 
   onShow: function () {
-    // 每次进入页面刷新统计
+    const app = getApp();
+    if (app.globalData.selectedParseRecord) {
+      this.displayParseData(app.globalData.selectedParseRecord);
+      app.globalData.selectedParseRecord = null;
+    }
+    if (app.globalData.promptRewardAd) {
+      app.globalData.promptRewardAd = false;
+      setTimeout(() => this.promptWatchAd(), 300);
+    }
+    this.refreshBenefit();
   },
 
   onHide: function () {
@@ -71,6 +92,33 @@ Page({
 
   onUnload: function () {
     this.stopAudio();
+    if (this.rewardedVideoAd) {
+      this.rewardedVideoAd.offClose(this.onRewardedAdClose);
+      this.rewardedVideoAd.offError(this.onRewardedAdError);
+    }
+  },
+
+  async initializeAccount() {
+    try {
+      await ensureLogin();
+      await this.refreshBenefit();
+    } catch (error) {
+      console.error('登录初始化失败:', error);
+      showToast(error.message || '登录失败，请稍后重试', 'none', 2500);
+    }
+  },
+
+  async refreshBenefit() {
+    try {
+      const response = await getBenefit();
+      this.setData({
+        benefit: response.data,
+        benefitLoading: false
+      });
+    } catch (error) {
+      if (error.code !== 40101) console.error('获取权益失败:', error);
+      this.setData({ benefitLoading: false });
+    }
   },
 
   onInput: function (e) {
@@ -147,40 +195,18 @@ Page({
       return;
     }
     try {
-      const response = await request('/short_videos/sv1.php', {
-        method: 'GET',
-        data: {
-          url
-        }
-      });
-      if (response.code !== 200) {
-        showToast(response.msg || '解析失败', 'none', 2000);
-      } else {
-        const data = response.data;
-        if (!data || (!data.url && !data.title && !data.cover && !(data.images || []).length && !(data.live_photo || []).length)) {
-          showToast('无法获取到该视频信息，请稍后再试', 'none', 2000);
-        } else {
-          const normalizedData = this.normalizeParseData(data, response.platform);
-          this.setData({
-            response: normalizedData,
-            showVideo: !!normalizedData.video_url,
-            showArticle: !!normalizedData.title,
-            showCoverButton: !!normalizedData.cover_url,
-            showImageList: normalizedData.image_list.length > 0,
-            showAudio: !!normalizedData.audio_url,
-            showLivePhotos: normalizedData.live_photo_list.length > 0,
-            showSaveVideoButton: !!normalizedData.video_url,
-            showSaveCoverButton: !!normalizedData.cover_url,
-            showSaveImagesButton: normalizedData.image_list.length > 0,
-            mediaCount: this.getMediaCount(normalizedData),
-            mediaTypeLabel: this.getMediaTypeLabel(normalizedData),
-            showWhiteBackground: true
-          });
-        }
-      }
+      await ensureLogin();
+      const response = await createParse(url);
+      this.displayParseData(response.data);
+      await this.refreshBenefit();
     } catch (error) {
       console.error('请求失败:', error);
-      showToast(error.message || '解析失败，请稍后再试', 'none', 2500);
+      if (error.code === 42901) {
+        this.pendingParseUrl = url;
+        this.promptWatchAd();
+      } else {
+        showToast(error.message || '解析失败，请稍后再试', 'none', 2500);
+      }
     } finally {
       setTimeout(() => {
         this.setData({
@@ -209,8 +235,8 @@ Page({
       image_list: imageList,
       live_photo_list: livePhotoList,
       live_photos: livePhotos,
-      cover_url: data.cover || imageList[0] || '',
-      video_url: data.url || (backupVideo && backupVideo.url) || '',
+      cover_url: data.cover || data.cover_url || imageList[0] || '',
+      video_url: data.video_url || data.url || (backupVideo && backupVideo.url) || '',
       video_id: extra.aweme_id ? String(extra.aweme_id) : '',
       audio_url: music.url || '',
       audio_title: music.title || '',
@@ -236,6 +262,78 @@ Page({
     if (data.video_url) return '视频素材';
     if (data.image_list.length) return `图集素材（${data.image_list.length}张）`;
     return '封面素材';
+  },
+
+  initRewardedVideoAd() {
+    if (!config.rewardedVideoAdUnitId || !wx.createRewardedVideoAd) return;
+
+    this.rewardedVideoAd = wx.createRewardedVideoAd({
+      adUnitId: config.rewardedVideoAdUnitId
+    });
+    this.onRewardedAdClose = this.handleRewardedAdClose.bind(this);
+    this.onRewardedAdError = this.handleRewardedAdError.bind(this);
+    this.rewardedVideoAd.onClose(this.onRewardedAdClose);
+    this.rewardedVideoAd.onError(this.onRewardedAdError);
+  },
+
+  promptWatchAd() {
+    wx.showModal({
+      title: '今日免费次数已用完',
+      content: '每天可免费解析 3 次。完整观看一次激励视频，即可解锁今日更多解析次数。',
+      confirmText: '观看广告',
+      cancelText: '暂不观看',
+      success: (res) => {
+        if (res.confirm) this.showRewardedVideoAd();
+      }
+    });
+  },
+
+  async showRewardedVideoAd() {
+    if (!config.rewardedVideoAdUnitId) {
+      showToast('请先在配置文件中填写激励视频广告位 ID', 'none', 3000);
+      return;
+    }
+
+    this.setData({ adLoading: true });
+    try {
+      await this.rewardedVideoAd.show();
+    } catch (error) {
+      try {
+        await this.rewardedVideoAd.load();
+        await this.rewardedVideoAd.show();
+      } catch (loadError) {
+        this.setData({ adLoading: false });
+        showToast('广告加载失败，请稍后重试', 'none', 2500);
+      }
+    }
+  },
+
+  async handleRewardedAdClose(res) {
+    this.setData({ adLoading: false });
+    if (!res || !res.isEnded) {
+      showToast('需完整观看广告才能获得解析次数', 'none', 2500);
+      return;
+    }
+
+    try {
+      const response = await grantAdReward();
+      this.setData({ benefit: response.data });
+      showToast('今日解析额度已解锁', 'success', 2000);
+      if (this.pendingParseUrl) {
+        const url = this.pendingParseUrl;
+        this.pendingParseUrl = '';
+        this.setData({ inputValue: url });
+        await this.onSubmit();
+      }
+    } catch (error) {
+      showToast(error.message || '广告奖励发放失败', 'none', 2500);
+    }
+  },
+
+  handleRewardedAdError(error) {
+    console.error('激励广告错误:', error);
+    this.setData({ adLoading: false });
+    showToast('广告暂时不可用，请稍后重试', 'none', 2500);
   },
 
   viewCoverImage() {
@@ -303,6 +401,31 @@ Page({
     } catch (error) {
       copyToClipboard(videos.join('\n'), { title: '保存失败，实况视频链接已复制', icon: 'none' });
     }
+  },
+
+  displayParseData(source = {}) {
+    const data = source.result_data || source;
+    if (!data || (!data.video_url && !data.url && !data.title && !data.cover && !data.cover_url && !(data.images || []).length && !(data.live_photo || []).length)) {
+      showToast(source.error_message || '无法获取到该素材信息，请稍后再试', 'none', 2000);
+      return;
+    }
+
+    const normalizedData = this.normalizeParseData(data, source.platform || data.platform);
+    this.setData({
+      response: normalizedData,
+      showVideo: !!normalizedData.video_url,
+      showArticle: !!normalizedData.title,
+      showCoverButton: !!normalizedData.cover_url,
+      showImageList: normalizedData.image_list.length > 0,
+      showAudio: !!normalizedData.audio_url,
+      showLivePhotos: normalizedData.live_photo_list.length > 0,
+      showSaveVideoButton: !!normalizedData.video_url,
+      showSaveCoverButton: !!normalizedData.cover_url,
+      showSaveImagesButton: normalizedData.image_list.length > 0,
+      mediaCount: this.getMediaCount(normalizedData),
+      mediaTypeLabel: this.getMediaTypeLabel(normalizedData),
+      showWhiteBackground: true
+    });
   },
 
   async downloadCover() {
@@ -552,6 +675,10 @@ Page({
     wx.navigateTo({
       url: '/pages/questions/questions'
     });
+  },
+
+  navigateToHistory() {
+    wx.navigateTo({ url: '/pages/history/history' });
   },
 
   onVideoError: function (e) {

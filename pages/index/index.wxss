@@ -78,6 +78,62 @@ page {
   margin-bottom: 24px;
 }
 
+.benefit-card {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #edf4ff 0%, #f5f1ff 100%);
+  border: 1px solid rgba(36, 94, 232, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.benefit-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.benefit-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #253b70;
+}
+
+.benefit-desc {
+  font-size: 11px;
+  color: #7482a3;
+}
+
+.benefit-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.benefit-unlocked {
+  font-size: 11px;
+  color: #245ee8;
+}
+
+.history-button {
+  height: 32px;
+  line-height: 32px;
+  padding: 0 12px;
+  margin: 0;
+  border-radius: 10px;
+  background: #fff;
+  color: #245ee8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.history-button::after {
+  border: none;
+}
+
 /* ---------- 输入区：右上角粘贴魔法按钮 + 右下角清空 + 气泡 ---------- */
 .input-wrap {
   position: relative;

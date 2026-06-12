@@ -17,6 +17,18 @@
   </view>
 
   <view class="top-section">
+    <view class="benefit-card">
+      <view class="benefit-info">
+        <text class="benefit-title">今日解析额度</text>
+        <text class="benefit-desc" wx:if="{{!benefitLoading}}">已用 {{benefit.used_count}} 次，剩余 {{benefit.remaining}} 次</text>
+        <text class="benefit-desc" wx:else>正在获取今日额度...</text>
+      </view>
+      <view class="benefit-actions">
+        <text class="benefit-unlocked" wx:if="{{benefit.ad_unlocked}}">已解锁</text>
+        <button class="history-button" bindtap="navigateToHistory">解析历史</button>
+      </view>
+    </view>
+
     <!-- 输入区：增加了“厚度感”样式 -->
     <view class="input-wrap">
       <textarea

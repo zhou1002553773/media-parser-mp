@@ -1,11 +1,16 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/history/history",
     "pages/videoPlayer/videoPlayer",
     "pages/questions/questions"
   ],
   "window": {
-    "navigationBarTitleText": "去水印小程序"
+    "navigationBarTitleText": "去水印小程序",
+    "navigationBarBackgroundColor": "#f7f8fa",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f7f8fa",
+    "backgroundTextStyle": "dark"
   },
   "requiredBackgroundModes": [
     "audio"
