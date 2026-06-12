@@ -117,7 +117,7 @@ Page({
 
     // 返回分享配置
     return {
-      title: '分享一个我一直在用的去水印神器',
+      title: '分享一个我一直在用的灵创去水印',
       query: `/pages/videoPlayer/videoPlayer?url=${encodeURIComponent(videoUrl)}&` +
              `cover=${encodeURIComponent(coverUrl)}&`+
              `videoid=${encodeURIComponent(videoId)}&`+

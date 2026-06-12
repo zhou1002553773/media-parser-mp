@@ -23,12 +23,22 @@ page {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 7px;
 }
 
-.nav-title-img {
-  height: 18px;  /* 略微缩小标题图高度 */
-  width: auto;
+.nav-brand-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   display: block;
+}
+
+.nav-brand-title {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #17181c;
 }
 
 /* ---------- 顶部：滚动公告栏 ---------- */
@@ -155,7 +165,7 @@ page {
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05); /* 向下的内阴影 */
 }
 
-/* 操作按钮行：粘贴/清空 + 喵去水印 一左一右并排 */
+/* 操作按钮行：粘贴/清空 + 灵创去水印 一左一右并排 */
 .btn-row {
   display: flex;
   gap: 10px;
