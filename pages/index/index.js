@@ -290,7 +290,11 @@ Page({
 
   async showRewardedVideoAd() {
     if (!config.rewardedVideoAdUnitId) {
-      showToast('请先在配置文件中填写激励视频广告位 ID', 'none', 3000);
+      if (config.mockRewardedVideoAd) {
+        await this.grantRewardAfterAd(true);
+      } else {
+        showToast('请先在配置文件中填写激励视频广告位 ID', 'none', 3000);
+      }
       return;
     }
 
@@ -315,10 +319,18 @@ Page({
       return;
     }
 
+    await this.grantRewardAfterAd(false);
+  },
+
+  async grantRewardAfterAd(isMock = false) {
+    this.setData({ adLoading: true });
     try {
-      const response = await grantAdReward();
-      this.setData({ benefit: response.data });
-      showToast('今日解析额度已解锁', 'success', 2000);
+      const response = await grantAdReward(isMock ? 'mock_rewarded_video_ad' : null);
+      this.setData({
+        benefit: response.data,
+        adLoading: false
+      });
+      showToast(isMock ? '模拟广告完成，今日额度已解锁' : '今日解析额度已解锁', 'success', 2000);
       if (this.pendingParseUrl) {
         const url = this.pendingParseUrl;
         this.pendingParseUrl = '';
@@ -326,6 +338,7 @@ Page({
         await this.onSubmit();
       }
     } catch (error) {
+      this.setData({ adLoading: false });
       showToast(error.message || '广告奖励发放失败', 'none', 2500);
     }
   },

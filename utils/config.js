@@ -7,6 +7,10 @@ const config = {
 
   // 微信流量主后台创建的激励视频广告位 ID。
   rewardedVideoAdUnitId: '',
+
+  // 开发阶段 Mock：未配置广告位 ID 时，点击观看广告后直接发放奖励。
+  // 接入真实广告后建议改为 false。
+  mockRewardedVideoAd: true,
   
   // 请求超时时间（毫秒）
   timeout: 15000,

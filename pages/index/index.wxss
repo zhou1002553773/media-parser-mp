@@ -671,18 +671,24 @@ page {
   flex-shrink: 0;
 }
 
-/* 保存视频 / 保存封面：logo 蓝 */
+/* 保存视频 / 保存封面：实心蓝底，增强图标与文字对比度 */
 .action-btn.btn-save {
-  background: #edf4ff;
-  color: #245ee8;
-  box-shadow: none;
+  background: linear-gradient(135deg, #3c7cf4 0%, #245ee8 100%);
+  color: #fff;
+  border: 1px solid rgba(29, 79, 202, 0.22);
+  box-shadow: 0 7px 16px rgba(36, 94, 232, 0.24);
 }
 
 .action-btn.btn-cover {
-  background: #e9f2ff;
-  color: #1d5fd6;
-  border: 1px solid rgba(36, 94, 232, 0.18);
-  box-shadow: 0 5px 14px rgba(36, 94, 232, 0.1);
+  background: linear-gradient(135deg, #2769dc 0%, #174eb8 100%);
+  color: #fff;
+  border: 1px solid rgba(18, 61, 158, 0.3);
+  box-shadow: 0 7px 16px rgba(23, 78, 184, 0.24);
+}
+
+.action-btn.btn-save .action-btn-icon,
+.action-btn.btn-cover .action-btn-icon {
+  filter: brightness(0) invert(1);
 }
 
 .action-btn.btn-primary {
@@ -697,12 +703,12 @@ page {
 }
 
 .action-btn.btn-save:active {
-  background: #dfeaff;
+  background: #1e4ec4;
   transform: scale(0.98);
 }
 
 .action-btn.btn-cover:active {
-  background: #d9e8ff;
+  background: #123f99;
   transform: scale(0.98);
 }
 
