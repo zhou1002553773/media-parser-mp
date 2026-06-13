@@ -660,7 +660,7 @@ Page({
   },
 
   showDisclaimer() {
-    showConfirmModal("灵创去水印说明", "灵创去水印作为中立的技术服务提供者，旨在协助用户个人学习与素材赏析。我们郑重提醒用户，务必合法使用，任何因滥用而导致的侵权行为，责任将由用户自行承担。本程序不存储任何数字影像，资料版权归原平台及作者所有。灵创去水印致力于与用户携手，共同维护一个健康、积极的网络环境。此声明适用于本服务的所有功能。", (res) => { }, { showCancel: false, confirmText: "确定" });
+    showConfirmModal("灵舟去水印说明", "灵舟去水印作为中立的技术服务提供者，旨在协助用户个人学习与素材赏析。我们郑重提醒用户，务必合法使用，任何因滥用而导致的侵权行为，责任将由用户自行承担。本程序不存储任何数字影像，资料版权归原平台及作者所有。灵舟去水印致力于与用户携手，共同维护一个健康、积极的网络环境。此声明适用于本服务的所有功能。", (res) => { }, { showCancel: false, confirmText: "确定" });
   },
 
   onShareAppMessage: function () {
@@ -683,7 +683,7 @@ Page({
       };
     } else {
       return {
-        title: '灵创去水印，轻松保存喜欢的图片和视频',
+        title: '灵舟去水印，轻松保存喜欢的图片和视频',
         path: '/pages/index/index',
         success: (res) => {
         },
@@ -698,7 +698,7 @@ Page({
     const { video_url, cover_url, title, video_id, heat } = this.data.response;
     if (video_url) {
       return {
-        title: '分享一个我一直在用的灵创去水印',
+        title: '分享一个我一直在用的灵舟去水印',
         query: `/pages/videoPlayer/videoPlayer?url=${encodeURIComponent(video_url)}&` +
           `cover=${encodeURIComponent(cover_url)}&` +
           `title=${encodeURIComponent(truncateString(title, 80, ''))}&` +
@@ -714,7 +714,7 @@ Page({
       };
     } else {
       return {
-        title: '分享一个我一直在用的灵创去水印',
+        title: '分享一个我一直在用的灵舟去水印',
         query: '/pages/index/index',
         success: (res) => {
         },
